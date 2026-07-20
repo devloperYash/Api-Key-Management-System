@@ -102,35 +102,6 @@ See `docs/FOLDER-STRUCTURE.md` for the full annotated tree of both `backend/` an
 
 ---
 
-## 4. Known Bugs
-
-These are real, findable bugs — go find them. No hints beyond "here's roughly what category
-they're in." (Full technical detail is in `JUDGE-SOLUTION-GUIDE.md`, which is for judges only —
-please don't read ahead if you're a candidate.)
-
-1. **API key validation has a trust shortcut.** Somewhere in how a presented key gets matched
-   against stored keys, there's a path that trusts more than it should.
-2. **N+1 queries** on one of the list endpoints when building response DTOs from a lazy
-   association.
-3. **An authorization gap** on at least one API-key-related endpoint — having a valid session
-   isn't the same as having access to *that specific* resource.
-4. **A rate-limit counter that can be bypassed under concurrent load** — look at how the "requests
-   this minute" counter gets read, incremented, and saved.
-5. **A validation bound that doesn't actually bound anything** on one of the API key creation
-   fields.
-6. **The "Create API Key" dialog has more than one problem** — scope selection, the expiry date
-   picker, and the copy-to-clipboard button are all worth testing by hand, not just reading.
-7. **At least one page shows nothing while it's loading.** No spinner, no skeleton, just a blank
-   beat before content pops in.
-8. **Inconsistent UI conventions** on at least one page (compare its styling approach to the rest
-   of the app), and a table somewhere that doesn't tell you anything useful when it's empty.
-9. **The usage analytics endpoint is slow in a specific, fixable way** once there's real data
-   volume behind it. Profile it before you assume the fix is "add an index."
-10. **Some dead weight**: an `@Deprecated` method someone's still calling, a component that exists
-    but isn't routed anywhere, and two different helpers doing the same kind of formatting job
-    slightly differently.
-
----
 
 ## 5. Missing Features (to implement)
 
