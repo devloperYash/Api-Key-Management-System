@@ -18,6 +18,7 @@ import { MaskKeyPipe } from '../../../shared/pipes/mask-key.pipe';
 import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
 import { CreateApiKeyDialogComponent } from '../create-api-key-dialog/create-api-key-dialog.component';
 import { KeyCreatedDialogComponent } from '../key-created-dialog/key-created-dialog.component';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
 
 @Component({
@@ -253,38 +254,60 @@ export class ApiKeyListComponent implements OnInit {
   }
 
   revokeKey(key: ApiKey): void {
-    if (!confirm(`Revoke "${key.name}"? This cannot be undone and any client using it will stop working immediately.`)) {
-      return;
-    }
-    this.apiKeyService.revoke(key.id).subscribe({
-      next: () => {
-        this.snackBar.open('API key revoked', 'Dismiss', { duration: 3000 });
-        this.load();
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '450px',
+      data: {
+        title: 'Revoke API Key',
+        message: `Are you sure you want to revoke "${key.name}"? This action cannot be undone and any client using it will stop working immediately.`,
+        confirmText: 'Revoke Key',
+        color: 'warn',
+        icon: 'block',
       },
-      error: (err) => {
-        const msg = err?.error?.message || 'Failed to revoke API key';
-        this.snackBar.open(msg, 'Dismiss', { duration: 4000 });
-      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.apiKeyService.revoke(key.id).subscribe({
+        next: () => {
+          this.snackBar.open('API key revoked', 'Dismiss', { duration: 3000 });
+          this.load();
+        },
+        error: (err) => {
+          const msg = err?.error?.message || 'Failed to revoke API key';
+          this.snackBar.open(msg, 'Dismiss', { duration: 4000 });
+        },
+      });
     });
   }
 
   rotateKey(key: ApiKey): void {
-    if (!confirm(`Rotate "${key.name}"?\n\nA new key will be generated immediately. The old key will remain valid for a 24-hour grace period.`)) {
-      return;
-    }
-    this.apiKeyService.rotate(key.id).subscribe({
-      next: (created) => {
-        this.dialog.open(KeyCreatedDialogComponent, {
-          width: '520px',
-          disableClose: true,
-          data: { fullKey: created.fullKey, keyName: created.apiKey.name },
-        });
-        this.load();
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '480px',
+      data: {
+        title: 'Rotate API Key',
+        message: `Rotate "${key.name}"?\n\nA new key will be generated immediately. The old key will remain valid for a 24-hour grace period so active integrations don't break.`,
+        confirmText: 'Rotate Key',
+        color: 'primary',
+        icon: 'autorenew',
       },
-      error: (err) => {
-        const msg = err?.error?.message || 'Failed to rotate API key';
-        this.snackBar.open(msg, 'Dismiss', { duration: 4000 });
-      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.apiKeyService.rotate(key.id).subscribe({
+        next: (created) => {
+          this.dialog.open(KeyCreatedDialogComponent, {
+            width: '520px',
+            disableClose: true,
+            data: { fullKey: created.fullKey, keyName: created.apiKey.name },
+          });
+          this.load();
+        },
+        error: (err) => {
+          const msg = err?.error?.message || 'Failed to rotate API key';
+          this.snackBar.open(msg, 'Dismiss', { duration: 4000 });
+        },
+      });
     });
   }
 
