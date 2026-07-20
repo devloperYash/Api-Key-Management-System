@@ -412,7 +412,14 @@ npm start
 
 ---
 
-## 🏆 9. Deliverables Summary Matrix
+## 👥 9. Team Contributions
+
+* **Yash**: Lead Full-Stack & Architecture. Implemented Zero-Downtime Key Rotation, AI Integration (Forge Assistant), and fixed critical IDOR security bugs.
+* **Gauri**: Handled API Rate Limiting Enforcement (HTTP 429), fixed UI bugs (Analytics Spinner), and improved Angular component layouts.
+
+---
+
+## 🏆 10. Deliverables Summary Matrix
 
 | Category | Component / Feature | Baseline | Final Status |
 |---|---|:---:|:---:|
