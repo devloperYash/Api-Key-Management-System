@@ -415,7 +415,7 @@ npm start
 ## 👥 9. Team Contributions
 
 * **Yash**: Lead Full-Stack & Architecture. Implemented Zero-Downtime Key Rotation, AI Integration (Forge Assistant), and fixed critical IDOR security bugs.
-* **Gauri**: Handled API Rate Limiting Enforcement (HTTP 429), fixed UI bugs (Analytics Spinner), and improved Angular component layouts.
+* **Gauri**: Handled API Rate Limiting Enforcement (HTTP 429), built the full-stack Organization Audit Logs system, fixed the Scope Checkbox data loss using Angular Reactive Forms, and developed the `*kfHasPermission` directive for Role-Based Access Control (RBAC).
 
 ---
 
