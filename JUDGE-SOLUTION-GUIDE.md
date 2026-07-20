@@ -2,8 +2,8 @@
 
 > **Project Name**: KeyForge — Developer API Key & Access Management Platform  
 > **Repository**: [devloperYash/Api-Key-Management-System](https://github.com/devloperYash/Api-Key-Management-System)  
-> **Tech Stack**: Java 21, Spring Boot 3.3.4, Spring Security, Spring Data JPA, PostgreSQL / H2, Angular 20, Angular Material, RxJS, Angular Signals  
-> **Status**: 100% Core Features Complete | Production Grade Architecture | Easy-to-Follow Documentation  
+> **Tech Stack**: Java 21, Spring Boot 3.3.4, Spring Security, Spring Data JPA, PostgreSQL / H2, Angular 20, Angular Material, RxJS, Angular Signals, Google Gemini AI (Forge Assistant)
+> **Status**: 100% Core Features Complete | Production Grade Architecture | AI Integrated | Easy-to-Follow Documentation
 
 ---
 
@@ -19,6 +19,7 @@ When modern companies expose public APIs to third-party developers, they need a 
 4. 🔄 **Zero-Downtime Key Rotation**: Replace old keys safely using a 24-hour grace period so active apps don't break.
 5. ❌ **Instant Revocation**: Soft-delete compromised keys instantly across all systems.
 6. 📜 **Audit Logs & Analytics**: Track who created, rotated, or revoked keys and monitor real-time API call metrics.
+7. 🤖 **AI-Powered Insights (Forge Assistant)**: Smart security recommendations and automated scope generation using Google Gemini AI.
 
 ---
 
@@ -39,6 +40,7 @@ Here is a clear, simple comparison of what was given in the initial codebase ver
 | ☑️ **Scope Checkbox Sync** | Checkboxes used two separate state variables. | Desynchronized state, empty scope submissions, wrong JSON payloads. | Rebuilt form using Angular Reactive `FormArray` + custom validator `atLeastOneScopeSelectedValidator`. |
 | 🛡️ **Frontend Permission Directives** | `HasPermissionDirective` file path was missing. | Action buttons caused Angular compilation errors or failed to render. | Created `HasPermissionDirective` (`*kfHasPermission`) to dynamically hide/show buttons based on org member roles. |
 | ⚡ **Database Performance (N+1 Queries)** | Dashboard stats ran nested loops per project & key. | Fired $N+1$ database queries on every dashboard load. | Replaced loops with optimized single-query JPQL aggregations and added `@EntityGraph` eager joins. |
+| 🤖 **AI Integration (Forge Assistant)** | None. | Manual scope selection & basic analytics. | Built `ForgeAssistantService` (Gemini API) to provide real-time Smart Security Insights on the dashboard and AI-driven optimal scope recommendations during key creation. |
 
 ---
 
@@ -279,6 +281,18 @@ sequenceDiagram
 
 ---
 
+### 🤖 Feature 5: Forge Assistant (Google Gemini AI Integration)
+
+- **What Was Missing?**  
+  The dashboard only displayed raw numbers, and creating API keys required developers to guess the best scopes and rate limits.
+
+- **Our Approach & Fix**:  
+  Integrated Google Gemini AI (branded as **Forge Assistant**) to provide intelligent features:
+  1. **Smart Security & Gateway Insights**: Added `AiInsightsCardComponent` to the Dashboard. It sends real-time usage stats to the AI to generate executive summaries, security recommendations, and traffic assessments.
+  2. **AI Scope Recommendations**: Added an "Ask Forge Assistant" button in the Create API Key dialog. It analyzes the key's name (e.g., "Mobile Client", "Billing System") and automatically recommends the principle of least privilege scopes and rate limits.
+
+---
+
 ## 🟢 6. Performance Optimizations
 
 ### ⚡ 1. Fixed N+1 Query Problem in Dashboard Stats
@@ -394,6 +408,7 @@ npm start
 4. **Test Key Rotation**: Click the **Rotate** button (autorenew icon) $\rightarrow$ Confirm rotation $\rightarrow$ Verify plaintext key reveal dialog opens and old key status turns amber (`ROTATING`).
 5. **Test Key Revocation**: Click the **Revoke** button (block icon) $\rightarrow$ Confirm revocation $\rightarrow$ Verify status turns red (`REVOKED`).
 6. **Test Audit Logs**: Click **Audit Logs** in sidebar $\rightarrow$ Verify real-time logs recorded for `API_KEY_CREATED`, `API_KEY_ROTATED`, and `API_KEY_REVOKED`.
+7. **Test AI Features**: Go to **Dashboard** to see the **Forge Assistant Insights** card. Go to **Create Key**, type "Billing App", and click **Ask Forge Assistant** to see intelligent scope recommendations.
 
 ---
 
@@ -412,5 +427,6 @@ npm start
 | **Frontend** | Reactive `FormArray` Scope Checkbox Fix | Data Loss | ✅ Fixed |
 | **Frontend** | `HasPermissionDirective` (`*kfHasPermission`) | Missing File | ✅ Created |
 | **Frontend** | Analytics Loading Spinner Fix | UI Freeze | ✅ Fixed |
+| **Full Stack** | Forge Assistant (AI Security Insights & Scope Advisor) | None | ✅ Complete |
 
 **KeyForge is 100% complete, fully tested, secure, and production-ready!** 🚀

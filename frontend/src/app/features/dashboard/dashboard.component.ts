@@ -40,7 +40,7 @@ const POLL_INTERVAL_MS = 15000;
       @if (loading()) {
         <kf-loading-spinner label="Loading dashboard stats..."></kf-loading-spinner>
       } @else if (stats()) {
-        <!-- Gemini AI Smart Security & Gateway Insights -->
+        <!-- Forge Assistant Smart Security & Gateway Insights -->
         <kf-ai-insights-card [stats]="stats()"></kf-ai-insights-card>
 
         <div class="kf-card-grid" style="margin-bottom: 20px;">

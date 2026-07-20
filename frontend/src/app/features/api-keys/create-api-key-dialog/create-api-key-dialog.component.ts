@@ -7,9 +7,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatIconModule } from '@angular/material/icon';
 import { ApiKeyService } from '../../../core/services/api-key.service';
+import { GeminiAiService } from '../../../core/services/gemini-ai.service';
 import { ALL_SCOPES, Scope } from '../../../core/models/api-key.model';
+import { MatNativeDateModule } from '@angular/material/core';
 
 export interface CreateApiKeyDialogData {
   organizationId: string;
@@ -27,12 +29,33 @@ export interface CreateApiKeyDialogData {
     MatInputModule,
     MatCheckboxModule,
     MatButtonModule,
+    MatIconModule,
     MatDatepickerModule,
     MatNativeDateModule,
   ],
   template: `
-    <h2 mat-dialog-title>Create API Key</h2>
+    <h2 mat-dialog-title style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Create API Key</span>
+      <button
+        type="button"
+        mat-stroke-button
+        color="accent"
+        style="font-size:12px; height:32px; border-radius:16px;"
+        [disabled]="aiLoading()"
+        (click)="applyAiRecommendation()"
+        title="Autofill optimal scopes using Forge Assistant"
+      >
+        <mat-icon style="font-size:16px; width:16px; height:16px; margin-right:4px;">auto_awesome</mat-icon>
+        Ask Forge Assistant
+      </button>
+    </h2>
     <mat-dialog-content>
+      @if (aiReasoning()) {
+        <div style="background:#eef1fb; border-left:4px solid #3f51b5; padding:8px 12px; border-radius:4px; margin-bottom:12px; font-size:12px; color:#333;">
+          <strong>Forge Assistant Advisor:</strong> {{ aiReasoning() }}
+        </div>
+      }
+
       <form [formGroup]="form" class="kf-key-form">
         <mat-form-field appearance="outline" class="kf-full-width">
           <mat-label>Key name</mat-label>
@@ -115,10 +138,13 @@ export class CreateApiKeyDialogComponent {
   private readonly data = inject<CreateApiKeyDialogData>(MAT_DIALOG_DATA);
   private readonly fb = inject(FormBuilder);
   private readonly apiKeyService = inject(ApiKeyService);
+  private readonly geminiAi = inject(GeminiAiService);
 
   readonly allScopes = ALL_SCOPES;
   submitting = signal(false);
   submittedOnce = signal(false);
+  aiLoading = signal(false);
+  aiReasoning = signal<string | null>(null);
 
   form = this.fb.group({
     name: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(2)]),
@@ -133,6 +159,31 @@ export class CreateApiKeyDialogComponent {
     rateLimitPerMinute: this.fb.nonNullable.control(60, [Validators.required]),
   });
 
+  applyAiRecommendation(): void {
+    const keyName = this.form.controls.name.value;
+    this.aiLoading.set(true);
+
+    this.geminiAi.recommendScopesForKey(keyName).subscribe({
+      next: (rec) => {
+        this.aiLoading.set(false);
+        this.aiReasoning.set(rec.reasoning);
+
+        // Update rate limit
+        this.form.controls.rateLimitPerMinute.setValue(rec.recommendedRateLimit);
+
+        // Update scope checkboxes
+        const scopesArray = this.form.controls.scopes as FormArray;
+        this.allScopes.forEach((scope, index) => {
+          const isRecommended = rec.recommendedScopes.includes(scope.value);
+          scopesArray.at(index).setValue(isRecommended);
+        });
+      },
+      error: () => {
+        this.aiLoading.set(false);
+      },
+    });
+  }
+
   submit(): void {
     this.submittedOnce.set(true);
     if (this.form.invalid) {
@@ -142,7 +193,6 @@ export class CreateApiKeyDialogComponent {
     this.submitting.set(true);
     const raw = this.form.getRawValue();
 
-    // Map boolean array back to Scope[]
     const selectedScopes = this.allScopes
       .filter((_, i) => raw.scopes[i])
       .map(s => s.value);

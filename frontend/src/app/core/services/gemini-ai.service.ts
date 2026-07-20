@@ -11,11 +11,16 @@ export interface AiInsightResult {
   statusLevel: 'OPTIMAL' | 'ATTENTION' | 'CRITICAL';
 }
 
+export interface ScopeRecommendation {
+  recommendedScopes: string[];
+  recommendedRateLimit: number;
+  reasoning: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GeminiAiService {
   private readonly http = inject(HttpClient);
 
-  // Gemini API Key read dynamically from environment or fallback engine
   private readonly apiKey = (environment as any).geminiApiKey || '';
   private readonly apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
@@ -42,11 +47,7 @@ Return ONLY valid JSON.
 `;
 
     const body = {
-      contents: [
-        {
-          parts: [{ text: promptText }],
-        },
-      ],
+      contents: [{ parts: [{ text: promptText }] }],
     };
 
     return this.http.post<any>(`${this.apiUrl}?key=${this.apiKey}`, body).pipe(
@@ -67,6 +68,83 @@ Return ONLY valid JSON.
       }),
       catchError(() => of(this.getFallbackInsights(stats)))
     );
+  }
+
+  recommendScopesForKey(keyName: string): Observable<ScopeRecommendation> {
+    if (!keyName || keyName.trim().length === 0) {
+      return of({
+        recommendedScopes: ['READ_USERS'],
+        recommendedRateLimit: 60,
+        reasoning: 'Default principle of least privilege applied.',
+      });
+    }
+
+    const promptText = `
+A developer is creating an API Key named "${keyName}" on KeyForge API Gateway.
+Available Scopes: READ_USERS, WRITE_USERS, READ_PROJECTS, WRITE_PROJECTS, READ_BILLING, WRITE_BILLING, READ_ANALYTICS, ADMIN_ALL.
+
+Select the minimum necessary scopes (least privilege principle) and a recommended per-minute rate limit.
+Return JSON ONLY with:
+"recommendedScopes": array of scope strings,
+"recommendedRateLimit": number (e.g. 30, 60, 120, 300),
+"reasoning": 1 short sentence explanation.
+`;
+
+    if (!this.apiKey) {
+      return of(this.getFallbackScopeRecommendation(keyName));
+    }
+
+    const body = { contents: [{ parts: [{ text: promptText }] }] };
+
+    return this.http.post<any>(`${this.apiUrl}?key=${this.apiKey}`, body).pipe(
+      map((res) => {
+        try {
+          const rawText = res.candidates[0].content.parts[0].text;
+          const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+          const parsed = JSON.parse(cleanJson);
+          return {
+            recommendedScopes: parsed.recommendedScopes || ['READ_USERS'],
+            recommendedRateLimit: parsed.recommendedRateLimit || 60,
+            reasoning: parsed.reasoning || 'Scope recommendation based on least privilege security principle.',
+          };
+        } catch {
+          return this.getFallbackScopeRecommendation(keyName);
+        }
+      }),
+      catchError(() => of(this.getFallbackScopeRecommendation(keyName)))
+    );
+  }
+
+  private getFallbackScopeRecommendation(keyName: string): ScopeRecommendation {
+    const lower = keyName.toLowerCase();
+
+    if (lower.includes('billing') || lower.includes('payment') || lower.includes('stripe')) {
+      return {
+        recommendedScopes: ['READ_BILLING', 'WRITE_BILLING'],
+        recommendedRateLimit: 30,
+        reasoning: 'Billing integration detected. Granted billing scopes with strict rate limit.',
+      };
+    }
+    if (lower.includes('mobile') || lower.includes('client') || lower.includes('public')) {
+      return {
+        recommendedScopes: ['READ_USERS', 'READ_PROJECTS'],
+        recommendedRateLimit: 120,
+        reasoning: 'Public/Client key detected. Granted read-only scopes with standard quota.',
+      };
+    }
+    if (lower.includes('admin') || lower.includes('master') || lower.includes('root')) {
+      return {
+        recommendedScopes: ['ADMIN_ALL'],
+        recommendedRateLimit: 300,
+        reasoning: 'Administrative key detected. Granted full admin access.',
+      };
+    }
+
+    return {
+      recommendedScopes: ['READ_USERS', 'READ_ANALYTICS'],
+      recommendedRateLimit: 60,
+      reasoning: 'Standard application service key detected with least-privilege read access.',
+    };
   }
 
   private getFallbackInsights(stats: DashboardStats): AiInsightResult {

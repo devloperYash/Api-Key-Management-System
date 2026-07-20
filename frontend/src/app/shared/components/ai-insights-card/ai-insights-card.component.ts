@@ -16,7 +16,7 @@ import { DashboardStats } from '../../../core/models/usage.model';
       <div class="kf-ai-header">
         <div class="kf-ai-title">
           <mat-icon class="kf-sparkle-icon">auto_awesome</mat-icon>
-          <h3>Gemini AI Smart Security & Gateway Insights</h3>
+          <h3>Forge Assistant Smart Security & Gateway Insights</h3>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           @if (insight()) {
@@ -24,7 +24,7 @@ import { DashboardStats } from '../../../core/models/usage.model';
               {{ insight()!.statusLevel }}
             </span>
           }
-          <button mat-icon-button (click)="refresh()" [disabled]="loading()" title="Re-analyze metrics with AI">
+          <button mat-icon-button (click)="refresh()" [disabled]="loading()" title="Re-analyze metrics with Forge Assistant">
             <mat-icon [class.kf-spin]="loading()">refresh</mat-icon>
           </button>
         </div>
@@ -33,7 +33,7 @@ import { DashboardStats } from '../../../core/models/usage.model';
       @if (loading()) {
         <div class="kf-ai-loading">
           <mat-icon class="kf-spin">auto_awesome</mat-icon>
-          <span>Analyzing API call metrics and threat vectors with Gemini AI...</span>
+          <span>Analyzing API call metrics and threat vectors with Forge Assistant...</span>
         </div>
       } @else if (insight()) {
         <div class="kf-ai-content">
