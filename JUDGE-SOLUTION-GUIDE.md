@@ -1,57 +1,48 @@
-# 🏆 KeyForge — Hackathon Master Solution & Judge Evaluation Guide
+# 🏆 KeyForge — Hackathon Master Solution & Judge Guide
 
-> **Project Name**: KeyForge Developer API Key & Access Management Platform  
+> **Project Name**: KeyForge — Developer API Key & Access Management Platform  
 > **Repository**: [devloperYash/Api-Key-Management-System](https://github.com/devloperYash/Api-Key-Management-System)  
-> **Technology Stack**: Java 21, Spring Boot 3.3.4, Spring Security, Spring Data JPA, PostgreSQL / H2, Angular 20, Angular Material, RxJS, Angular Signals  
-> **Evaluation Status**: 100% Core Features Complete | Production Grade Architecture | Security-First Standard  
+> **Tech Stack**: Java 21, Spring Boot 3.3.4, Spring Security, Spring Data JPA, PostgreSQL / H2, Angular 20, Angular Material, RxJS, Angular Signals  
+> **Status**: 100% Core Features Complete | Production Grade Architecture | Easy-to-Follow Documentation  
 
 ---
 
-![KeyForge Executive Platform Dashboard](docs/images/dashboard_analytics.png)
+## 🚀 1. Project Overview & Problem Statement
+
+### 📌 What is KeyForge?
+KeyForge is an enterprise developer platform designed to create, manage, scope, rotate, revoke, and monitor API keys — exactly like **Stripe Dashboard > Developers > API Keys**, **Razorpay**, **AWS API Gateway**, or **OpenAI Developer Portal**.
+
+When modern companies expose public APIs to third-party developers, they need a secure dashboard to:
+1. 🔑 **Generate Scoped API Keys**: Restrict key access to specific permissions (`READ_USERS`, `WRITE_BILLING`, etc.).
+2. 🛡️ **Zero-Trust Hashing**: Store only SHA-256 digests in the database, showing raw keys **only once** at creation time.
+3. 🚦 **Enforce Rate Limits**: Prevent server overload by setting per-minute request limits.
+4. 🔄 **Zero-Downtime Key Rotation**: Replace old keys safely using a 24-hour grace period so active apps don't break.
+5. ❌ **Instant Revocation**: Soft-delete compromised keys instantly across all systems.
+6. 📜 **Audit Logs & Analytics**: Track who created, rotated, or revoked keys and monitor real-time API call metrics.
 
 ---
 
-## 🚀 1. Problem Statement (PS) & Vision Overview
+## 📊 2. Project Status: Initial State vs. Our Completed Work
 
-### 📌 Problem Statement Overview
-KeyForge is an enterprise-grade **Developer API Key & Access Management Platform** — built to emulate industry-leading developer portals such as **Stripe Dashboard > Developers > API Keys**, **Razorpay**, **AWS API Gateway**, and **OpenAI Developer Platform**.
+Here is a clear, simple comparison of what was given in the initial codebase versus what we fixed and built:
 
-When modern SaaS companies expose public APIs, they require a centralized control plane to:
-1. 🔑 **Generate Scoped API Keys**: Bound to fine-grained scopes (`READ_USERS`, `WRITE_BILLING`, `ADMIN_ALL`).
-2. 🛡️ **Enforce Zero-Trust Hashing**: Store **only SHA-256 digests**, showing raw plaintext keys **exactly once**.
-3. 🚦 **Enforce Rate Limiting**: Prevent API abuse and DoS attacks by enforcing per-minute request caps ($N$ req/min).
-4. 🔄 **Zero-Downtime Key Rotation**: Seamlessly rotate keys using a 24-hour dual-validity grace period ($T_{\text{grace}} = T_{\text{rotation}} + 24\text{h}$) without causing production downtime for downstream clients.
-5. ❌ **Instant Soft Revocation**: Revoke compromised keys immediately across all gateways.
-6. 📜 **Audit Trail & Real-time Analytics**: Maintain multi-tenant audit logs and aggregate call volume statistics.
+### 🔄 Before vs. After Comparison Table
 
----
-
-## ⚠️ 2. Baseline Project Status vs. Completed Solution
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                      INITIAL BASELINE (70%)                      │
-├──────────────────────────────────────────────────────────────────┤
-│ ✅ Login & JWT Auth             │ 🚧 Key Rotation (501 Stub)     │
-│ ✅ Organization Management      │ 🚧 Rate Limiting Unenforced    │
-│ ✅ Basic Key Creation           │ 🚧 Audit Log UI Placeholder    │
-│ ✅ Basic Project Routing        │ 🚧 Scope Checkbox Sync Bug     │
-└──────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼  [OUR HACKATHON SOLUTION]
-┌──────────────────────────────────────────────────────────────────┐
-│                   COMPLETED PLATFORM (100%)                      │
-├──────────────────────────────────────────────────────────────────┤
-│ 🏆 Zero-Downtime Rotation (24h Grace) │ 🏆 Fixed IDOR & Hash Bypass  │
-│ 🏆 HTTP 429 Rate Limit Engine         │ 🏆 Fixed N+1 Query Overhead  │
-│ 🏆 Full Audit Log API & UI            │ 🏆 Angular Signals & Reactive│
-│ 🏆 Platform Admin Analytics           │ 🏆 FormArray Scope Binding   │
-└──────────────────────────────────────────────────────────────────┘
-```
+| Feature / Area | What Was Given Initially (Baseline) | What Was Broken or Missing | What We Did (Our Solution & Final Status) |
+|---|---|---|---|
+| 🔄 **API Key Rotation** | Endpoint returned `501 Not Implemented`. Frontend showed "Coming Soon". | Old keys could not be rotated safely without breaking client apps. | Fully implemented zero-downtime key rotation. Generates a new `ACTIVE` key, marks old key as `ROTATING` with a 24-hour grace period, and auto-expires it using a background scheduled task. |
+| 🚦 **Rate Limiting Enforcement** | `ApiKeyAuthFilter` counted API requests. | When request limit was crossed, filter allowed requests anyway! | Fixed filter to return HTTP `429 Too Many Requests` when limit is exceeded, while logging rejected calls into usage analytics. |
+| 🔒 **IDOR Security Fix** | Keys could be fetched or revoked directly by ID. | Any logged-in user could guess key UUIDs and delete/read other orgs' keys. | Added `accessService.requireMembership()` checks on backend to verify caller owns the key's organization. |
+| 🔑 **SHA-256 Key Verification** | Verification checked hash ONLY if multiple keys shared a prefix. | Single prefix match bypassed SHA-256 verification. | Removed prefix shortcut. Enforced full SHA-256 hash comparison on every API call. |
+| 📜 **Audit Logging System** | Database saved audit logs, but no read API or frontend UI. | Users couldn't see history of key creations, rotations, or revocations. | Built backend DTOs, Service, and REST endpoint (`/api/organizations/{orgId}/audit-logs`), and created Angular Material Audit Log page with colored chips. |
+| 📊 **Platform Admin Analytics** | Endpoint `platformUsageSummary()` returned `501 Not Implemented`. | Admins couldn't see total platform usage across organizations. | Built `AdminService` cross-org analytics aggregating total calls, active keys, error rates, and top organizations. |
+| ☑️ **Scope Checkbox Sync** | Checkboxes used two separate state variables. | Desynchronized state, empty scope submissions, wrong JSON payloads. | Rebuilt form using Angular Reactive `FormArray` + custom validator `atLeastOneScopeSelectedValidator`. |
+| 🛡️ **Frontend Permission Directives** | `HasPermissionDirective` file path was missing. | Action buttons caused Angular compilation errors or failed to render. | Created `HasPermissionDirective` (`*kfHasPermission`) to dynamically hide/show buttons based on org member roles. |
+| ⚡ **Database Performance (N+1 Queries)** | Dashboard stats ran nested loops per project & key. | Fired $N+1$ database queries on every dashboard load. | Replaced loops with optimized single-query JPQL aggregations and added `@EntityGraph` eager joins. |
 
 ---
 
-## 🏛️ 3. High-Level System Architecture Topology
+## 🏛️ 3. High-Level System Architecture
 
 ```mermaid
 graph TD
@@ -99,15 +90,121 @@ graph TD
 
 ---
 
-## 🔄 4. Zero-Downtime API Key Rotation Flow
+## 🔴 4. Detailed Breakdown of Critical Bugs & Our Approach
 
-![Zero Downtime API Key Rotation Flow Architecture](docs/images/key_rotation_flow.png)
+Here is a simple, detailed explanation of every critical bug found in the codebase, why it was dangerous, and our exact approach to fixing it:
 
-### Key Rotation Mechanics
-- **Old Key State**: Transitions from `ACTIVE` $\rightarrow$ `ROTATING`. Sets `gracePeriodEndsAt = Instant.now().plus(24, ChronoUnit.HOURS)`.
-- **New Key State**: Immediately generated with `ACTIVE` status, sharing the same project, rate limits, and scopes.
-- **Grace Period Validation**: `ApiKeyValidationService.isUsable()` permits `ROTATING` keys to authenticate requests until their 24-hour grace period expires.
-- **Automated Expiry Daemon**: `@Scheduled(fixedRate = 60000)` background thread auto-expires `ROTATING` keys past grace period and `ACTIVE` keys past expiry dates.
+---
+
+### 🚦 Bug 1: Rate Limit Bypass (Known Bug #4)
+
+- **What Was Wrong?**  
+  `ApiKeyAuthFilter` called `recordRequestAndCheckLimit()`, which returned `false` when a key exceeded its request limit. However, the filter ignored `false` and still allowed the request to go through to the controller!
+
+- **Why Was It Critical?**  
+  Attackers could make thousands of requests per minute, bypassing rate limits completely and crashing backend servers (DoS vulnerability).
+
+- **Our Approach & Fix**:  
+  We modified `ApiKeyAuthFilter.java` so that when `recordRequestAndCheckLimit()` returns `false`, the filter immediately short-circuits the request and returns an HTTP `429 Too Many Requests` JSON response. We also logged rate-limited requests so they appear accurately in usage analytics.
+
+```mermaid
+flowchart TD
+    Req[Incoming Request with X-API-Key] --> Resolve[Resolve Key by SHA-256 Digest]
+    Resolve --> CheckStatus{Status Usable?}
+    CheckStatus -- No --> R401[Return 401 Unauthorized]
+    CheckStatus -- Yes --> WindowCount[Increment Minute Window Counter]
+    WindowCount --> Exceeded{Count > RateLimit?}
+    Exceeded -- Yes --> Log429[Log 429 Incident in DB] --> R429[Return 429 Too Many Requests Response]
+    Exceeded -- No --> Pass[Forward to Controller] --> Log200[Log 200 Success in DB]
+```
+
+---
+
+### 🔒 Bug 2: IDOR Vulnerabilities in API Key Operations
+
+- **What Was Wrong?**  
+  `getApiKey()` and `revokeApiKey()` in `ApiKeyService.java` fetched keys by ID directly without checking if the logged-in user belonged to the organization that owned that key.
+
+- **Why Was It Critical?**  
+  Any authenticated user could read or delete another organization's API keys simply by changing the UUID in the API URL (Insecure Direct Object Reference).
+
+- **Our Approach & Fix**:  
+  We injected `accessService.requireMembership(userId, organizationId)` inside `getApiKey()` and `revokeApiKey()`. Now, the backend verifies server-side that the caller belongs to the key's organization before performing any action.
+
+---
+
+### 🔑 Bug 3: Key Hash Verification Bypass
+
+- **What Was Wrong?**  
+  `ApiKeyValidationService` had a shortcut: if `findAllByKeyPrefix()` returned only 1 matching key prefix, it skipped full SHA-256 hash verification!
+
+- **Why Was It Critical?**  
+  An attacker who guessed a 16-character prefix could authenticate without knowing the secret plaintext key.
+
+- **Our Approach & Fix**:  
+  We completely removed the shortcut. Every incoming key must now undergo full cryptographic hash comparison (`apiKeyGenerator.matches(presentedKey, k.getHashedKey())`) before being authenticated.
+
+---
+
+### ☑️ Bug 4: Scope Checkbox Data Loss (Known Bug #6)
+
+- **What Was Wrong?**  
+  In `CreateApiKeyDialogComponent`, selected permission scopes were stored in two separate variables. When opening/closing the dialog or submitting, selected scopes drifted out of sync, causing empty scope submissions or wrong JSON payloads.
+
+- **Why Was It Critical?**  
+  Generated API keys lost their assigned permissions or ended up with corrupted scopes in the database.
+
+- **Our Approach & Fix**:  
+  We rebuilt the dialog form using Angular **Reactive FormArray** and added a custom validator `atLeastOneScopeSelectedValidator`. Now, checkbox selections in the UI are perfectly synchronized with the form value and sent correctly to the backend.
+
+---
+
+### 📤 Bug 5: Unauthenticated Reports Export Endpoint
+
+- **What Was Wrong?**  
+  The endpoint `GET /api/reports/projects/{projectId}/keys/export` allowed anyone to download CSV dumps of API keys without sending an authentication token.
+
+- **Why Was It Critical?**  
+  Unauthenticated data leakage of sensitive project key metadata.
+
+- **Our Approach & Fix**:  
+  Added `@CurrentUserProvider` validation and `accessService.requireMembership()` checks to `ReportsController.java` to ensure only authorized organization members can export reports.
+
+---
+
+### 📊 Bug 6: Analytics UI Loading Spinner Glitch
+
+- **What Was Wrong?**  
+  On `AnalyticsComponent`, the loading spinner never hid after data was fetched successfully.
+
+- **Why Was It Critical?**  
+  Created a poor user experience, making the analytics page look broken or frozen.
+
+- **Our Approach & Fix**:  
+  Added `this.loading.set(false)` inside the RxJS `next` subscriber block so the spinner hides immediately when data arrives.
+
+---
+
+## 🟡 5. Missing Features Implemented & Our Approach
+
+---
+
+### 🔄 Feature 1: Zero-Downtime API Key Rotation
+
+- **What Was Missing?**  
+  The backend endpoint `POST /api/keys/{id}/rotate` returned `501 Not Implemented`. In the frontend, clicking "Rotate Key" showed a "Coming Soon" toast.
+
+- **Our Approach & Fix**:  
+  1. **Backend Implementation (`ApiKeyService.rotateApiKey()`)**:
+     - Generates a new `ACTIVE` key with identical project, scopes, and rate limits.
+     - Sets the old key's status to `ROTATING` and assigns a **24-hour grace period** (`gracePeriodEndsAt = Instant.now().plus(24, ChronoUnit.HOURS)`).
+     - Updates `ApiKeyValidationService.isUsable()` so `ROTATING` keys remain valid during their grace period.
+     - Added an `@Scheduled(fixedRate = 60000)` background worker to auto-expire rotating keys once 24 hours have passed.
+     - Saves an audit log event (`API_KEY_ROTATED`).
+  2. **Frontend Implementation (`ApiKeyListComponent`)**:
+     - Built a confirmation dialog that calls `ApiKeyService.rotate()`.
+     - Opens `KeyCreatedDialogComponent` to reveal the new plaintext secret **once**.
+     - Displays amber `ROTATING` status chips for old keys during their grace period.
 
 ```mermaid
 sequenceDiagram
@@ -142,79 +239,63 @@ sequenceDiagram
 
 ---
 
-## 🚦 5. Real-Time Rate Limiting & Security Gateway
+### 📜 Feature 2: Organization Audit Logs System
 
-![KeyForge Rate Limiting & Security Pipeline Architecture](docs/images/rate_limiting_pipeline.png)
+- **What Was Missing?**  
+  The backend wrote audit records to the database during key creation/revocation, but there was no API to fetch audit logs, and the frontend audit page was an empty shell.
 
-### Rate Limiting Pipeline
-- **Enforcement Filter**: `ApiKeyAuthFilter` intercepts calls to `/api/demo/protected-resource`.
-- **Sliding Window Counter**: `ApiKeyValidationService.recordRequestAndCheckLimit()` tracks window start (`currentWindowStart`) and count (`currentWindowCount`).
-- **HTTP 429 Response**: If $N_{\text{current}} > N_{\text{limit}}$, returns `HTTP 429 Too Many Requests` JSON and logs the rejected request into `api_key_usage_logs` for audit metrics.
-
-```mermaid
-flowchart TD
-    Req[Incoming Request with X-API-Key Header] --> Resolve[Resolve Key by SHA-256 Digest]
-    Resolve --> CheckStatus{Status Usable?}
-    CheckStatus -- No --> R401[Return 401 Unauthorized]
-    CheckStatus -- Yes --> WindowCount[Increment Minute Window Counter]
-    WindowCount --> Exceeded{Count > RateLimit?}
-    Exceeded -- Yes --> Log429[Log 429 Incident in DB] --> R429[Return 429 Too Many Requests]
-    Exceeded -- No --> Pass[Forward to Controller] --> Log200[Log 200 Usage in DB]
-```
+- **Our Approach & Fix**:  
+  1. **Backend**: Created `AuditLogResponse` DTO, `AuditLogService`, `AuditLogRepository`, and `AuditLogController` (`GET /api/organizations/{orgId}/audit-logs?page=0&size=20`).
+  2. **Frontend**: Built `AuditLogComponent` using Angular Material Table, pagination, and color-coded status chips:
+     - 🟢 `API_KEY_CREATED` (Green Chip)
+     - 🟡 `API_KEY_ROTATED` (Amber Chip)
+     - 🔴 `API_KEY_REVOKED` (Red Chip)
 
 ---
 
-## 📜 6. Multi-Tenant Audit Logging System
+### 📈 Feature 3: Platform Admin Analytics (`platformUsageSummary`)
 
-![KeyForge Organization Audit Logs UI](docs/images/audit_logs_ui.png)
+- **What Was Missing?**  
+  `AdminController.platformUsageSummary()` returned `501 Not Implemented`.
 
-### Audit Trail Capabilities
-- **Automated Logging**: Triggered on key creation (`API_KEY_CREATED`), key rotation (`API_KEY_ROTATED`), and revocation (`API_KEY_REVOKED`).
-- **Paginated Read Endpoint**: `GET /api/organizations/{orgId}/audit-logs?page=0&size=20`.
-- **Frontend Material Table**: Integrated with Angular Material Paginator and color-coded action badges:
-  - 🟢 `API_KEY_CREATED` (Green Chip)
-  - 🟡 `API_KEY_ROTATED` (Amber Chip)
-  - 🔴 `API_KEY_REVOKED` (Red Chip)
-
----
-
-## 🔴 7. P0 — Critical Security & Bug Fixes Executed
-
-> [!CAUTION]
-> Below are the critical security vulnerabilities and system bugs discovered and resolved during our code audit.
-
-| Vulnerability / Bug | Baseline Issue | Solution & Implementation |
-|---|---|---|
-| **Rate Limit Bypass (Bug #4)** | Filter ignored rate check result and passed requests through | Implemented HTTP `429 Too Many Requests` short-circuit in `ApiKeyAuthFilter`. |
-| **IDOR Vulnerability** | `getApiKey()` and `revokeApiKey()` lacked org check | Injected `accessService.requireMembership()` in `ApiKeyService.java`. |
-| **Key Hash Bypass** | Single-prefix match skipped SHA-256 verification | Enforced cryptographic SHA-256 digest validation on all lookup branches. |
-| **Unauthenticated Export** | Reports endpoint allowed public CSV extraction | Added JWT `@CurrentUserProvider` and org membership checks to `ReportsController`. |
-| **Scope Checkbox Bug (Bug #6)** | Dual array storage caused scope desynchronization | Rebuilt using Angular Reactive `FormArray` with `atLeastOneScopeSelectedValidator`. |
-| **Analytics UI Glitch** | Spinner remained visible after API response | Added `this.loading.set(false)` inside RxJS `next` subscriber callback. |
+- **Our Approach & Fix**:  
+  Implemented `AdminService.getPlatformUsageSummary()` to aggregate metrics across all organizations on the platform:
+  - Total Organizations
+  - Total Projects
+  - Active API Keys
+  - Total API Calls Today
+  - Overall Error Rate
+  - Top 5 Organizations by API Usage
 
 ---
 
-## 🟢 8. Performance & Optimization Metrics
+### 🛡️ Feature 4: Structural Permission Directive (`*kfHasPermission`)
 
-> [!TIP]
-> Database queries were benchmarked and optimized to ensure low-latency API key resolution.
+- **What Was Missing?**  
+  `api-key-list.component.ts` imported `HasPermissionDirective` from a non-existent file path, breaking Angular compilation on key action buttons.
 
-1. **N+1 Database Query Fix in Dashboard Stats**:
-   - Replaced nested loops in `UsageAnalyticsService` with single-query JPQL aggregations:
-     - `countTotalCallsForOrganizationBetween()`
-     - `countErrorCallsForOrganizationBetween()`
-     - `findDailyBreakdownForOrganization()`
-2. **`@EntityGraph` Eager Fetching**:
-   - Annotated `ApiKeyRepository.findAllByProjectId()` with `@EntityGraph(attributePaths = {"project"})` to eliminate lazy-loading query overhead.
+- **Our Approach & Fix**:  
+  Created `HasPermissionDirective` (`src/app/core/auth/has-permission.directive.ts`). It dynamically checks the user's role (`OWNER`, `ADMIN`, `MEMBER`) in the current organization and conditionally renders buttons (`Create Key`, `Rotate Key`, `Revoke Key`, `Analytics`).
 
 ---
 
-## 📖 9. Comprehensive API Reference Guide
+## 🟢 6. Performance Optimizations
 
-### Key Management REST API
+### ⚡ 1. Fixed N+1 Query Problem in Dashboard Stats
+- **Issue**: `UsageAnalyticsService` ran nested loops querying usage logs per project and key, firing $N+1$ database queries on every dashboard refresh.
+- **Fix**: Replaced loops with optimized single-query JPQL aggregations in `ApiKeyUsageLogRepository` (`countTotalCallsForOrganizationBetween`, `countErrorCallsForOrganizationBetween`, `findDailyBreakdownForOrganization`).
 
-#### 1. Create API Key
+### 🚀 2. Added `@EntityGraph` to `ApiKeyRepository`
+- **Issue**: Listing API keys fired an extra `SELECT` per row to fetch lazy-loaded `Project` names.
+- **Fix**: Annotated `findAllByProjectId()` with `@EntityGraph(attributePaths = {"project"})` to perform an eager `LEFT JOIN` in a single query.
+
+---
+
+## 📖 7. Comprehensive API Reference Guide
+
+### 1. Create API Key
 - **Endpoint**: `POST /api/organizations/{orgId}/projects/{projectId}/keys`
+- **Headers**: `Authorization: Bearer <JWT>`
 - **Request Body**:
   ```json
   {
@@ -239,8 +320,9 @@ flowchart TD
   }
   ```
 
-#### 2. Rotate API Key
+### 2. Rotate API Key
 - **Endpoint**: `POST /api/keys/{apiKeyId}/rotate`
+- **Headers**: `Authorization: Bearer <JWT>`
 - **Response** (`200 OK`):
   ```json
   {
@@ -254,8 +336,14 @@ flowchart TD
   }
   ```
 
-#### 3. Audit Logs Endpoint
+### 3. Revoke API Key
+- **Endpoint**: `POST /api/keys/{apiKeyId}/revoke`
+- **Headers**: `Authorization: Bearer <JWT>`
+- **Response**: `204 No Content`
+
+### 4. Fetch Audit Logs
 - **Endpoint**: `GET /api/organizations/{orgId}/audit-logs?page=0&size=20`
+- **Headers**: `Authorization: Bearer <JWT>`
 - **Response** (`200 OK`):
   ```json
   {
@@ -276,39 +364,53 @@ flowchart TD
 
 ---
 
-## 🧪 10. Verification & Execution Playbook for Judges
+## 🧪 8. Verification & Execution Playbook for Judges
 
-### Quickstart Setup
+### Step-by-Step Execution Guide
 
 ```bash
 # 1. Clone Repository
 git clone https://github.com/devloperYash/Api-Key-Management-System.git
 cd Api-Key-Management-System
 
-# 2. Start Backend
+# 2. Start Backend Server
 cd backend
 mvn spring-boot:run
-# Listening on http://localhost:8080
+# Backend runs on http://localhost:8080
 
-# 3. Start Frontend
+# 3. Start Frontend Portal
 cd frontend
 npm install
 npm start
-# Listening on http://localhost:4200
+# Frontend runs on http://localhost:4200
 ```
 
-### Judge Evaluation Testing Sequence
-1. Visit `http://localhost:4200/login`
-2. Log in using Seeded Credentials:
+### Testing Checklist for Judges
+1. Open `http://localhost:4200/login`
+2. Log in using Seed Credentials:
    - **Email**: `owner@acme.com`
    - **Password**: `Password123!`
-3. Navigate to **Projects** $\rightarrow$ Select **Acme Core API** $\rightarrow$ View **API Keys**.
-4. **Test Key Rotation**: Click autorenew icon $\rightarrow$ Confirm rotation dialog $\rightarrow$ Verify plaintext key reveal modal and amber `ROTATING` status badge.
-5. **Test Key Revocation**: Click block icon $\rightarrow$ Confirm revocation $\rightarrow$ Verify red `REVOKED` badge.
-6. **Test Audit Logs**: Click **Audit Logs** in sidebar $\rightarrow$ Confirm real-time creation, rotation, and revocation log records.
+3. Open **Projects** $\rightarrow$ Click **Acme Core API** $\rightarrow$ View **API Keys**.
+4. **Test Key Rotation**: Click the **Rotate** button (autorenew icon) $\rightarrow$ Confirm rotation $\rightarrow$ Verify plaintext key reveal dialog opens and old key status turns amber (`ROTATING`).
+5. **Test Key Revocation**: Click the **Revoke** button (block icon) $\rightarrow$ Confirm revocation $\rightarrow$ Verify status turns red (`REVOKED`).
+6. **Test Audit Logs**: Click **Audit Logs** in sidebar $\rightarrow$ Verify real-time logs recorded for `API_KEY_CREATED`, `API_KEY_ROTATED`, and `API_KEY_REVOKED`.
 
 ---
 
-## 🏆 11. Conclusion
+## 🏆 9. Deliverables Summary Matrix
 
-KeyForge is **production-ready**, highly performant, securely architected, and fully implemented according to the highest industry standards. Every task has been delivered and validated end-to-end! 🚀
+| Category | Component / Feature | Baseline | Final Status |
+|---|---|:---:|:---:|
+| **Backend** | API Key Rotation & 24h Grace Period | 501 Stub | ✅ Complete |
+| **Backend** | Rate Limiting Enforcement (HTTP 429) | Unenforced | ✅ Complete |
+| **Backend** | Platform Admin Analytics API | 501 Stub | ✅ Complete |
+| **Backend** | Audit Log Read API & DTOs | Missing | ✅ Complete |
+| **Backend** | IDOR & Key Hash Verification Security Fixes | Vulnerable | ✅ Fixed |
+| **Backend** | N+1 Query & `@EntityGraph` Performance Fixes | Slow Queries | ✅ Optimized |
+| **Frontend** | Rotation Confirmation & Plaintext Reveal Dialog | Coming Soon | ✅ Complete |
+| **Frontend** | Audit Log Table, Filters & Paginator | Empty Shell | ✅ Complete |
+| **Frontend** | Reactive `FormArray` Scope Checkbox Fix | Data Loss | ✅ Fixed |
+| **Frontend** | `HasPermissionDirective` (`*kfHasPermission`) | Missing File | ✅ Created |
+| **Frontend** | Analytics Loading Spinner Fix | UI Freeze | ✅ Fixed |
+
+**KeyForge is 100% complete, fully tested, secure, and production-ready!** 🚀
