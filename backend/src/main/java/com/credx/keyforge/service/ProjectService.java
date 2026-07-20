@@ -42,6 +42,7 @@ public class ProjectService {
         return toResponse(project);
     }
 
+    @Transactional(readOnly = true)
     public List<ProjectResponse> listProjects(String userId, String organizationId) {
         accessService.requireMembership(userId, organizationId);
         return projectRepository.findAllByOrganizationId(organizationId).stream()
@@ -49,6 +50,7 @@ public class ProjectService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public ProjectResponse getProject(String userId, String organizationId, String projectId) {
         accessService.requireMembership(userId, organizationId);
         Project project = findProjectInOrg(organizationId, projectId);

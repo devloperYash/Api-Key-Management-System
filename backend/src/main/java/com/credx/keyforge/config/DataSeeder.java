@@ -147,9 +147,14 @@ public class DataSeeder implements CommandLineRunner {
         String[] methods = {"GET", "GET", "GET", "POST"};
 
         for (int i = 0; i < count; i++) {
-            int daysAgo = random.nextInt(30);
+            // Guarantee at least 25% of logs are from today
+            int daysAgo = (i < count / 4) ? 0 : random.nextInt(30);
             int endpointIdx = random.nextInt(endpoints.length);
             boolean isError = random.nextInt(20) == 0;
+
+            Instant time = (daysAgo == 0)
+                    ? Instant.now().minusSeconds(random.nextInt(3600 * 6)) // Within last 6 hours
+                    : Instant.now().minus(daysAgo, ChronoUnit.DAYS).minusSeconds(random.nextInt(86400));
 
             ApiKeyUsageLog log = ApiKeyUsageLog.builder()
                     .apiKey(apiKey)
@@ -157,7 +162,7 @@ public class DataSeeder implements CommandLineRunner {
                     .httpMethod(methods[endpointIdx])
                     .statusCode(isError ? (random.nextBoolean() ? 429 : 500) : 200)
                     .responseTimeMs((long) (50 + random.nextInt(400)))
-                    .occurredAt(Instant.now().minus(daysAgo, ChronoUnit.DAYS).minusSeconds(random.nextInt(86400)))
+                    .occurredAt(time)
                     .build();
             usageLogRepository.save(log);
         }

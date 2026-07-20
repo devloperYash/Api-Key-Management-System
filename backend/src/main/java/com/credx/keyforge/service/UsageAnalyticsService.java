@@ -23,8 +23,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UsageAnalyticsService {
 
     private static final int DEFAULT_WINDOW_DAYS = 30;
@@ -80,27 +84,16 @@ public class UsageAnalyticsService {
     public DashboardStatsResponse getDashboardStats(String userId, String organizationId) {
         accessService.requireMembership(userId, organizationId);
 
-        List<Project> projects = projectRepository.findAllByOrganizationId(organizationId);
-
         Instant startOfToday = Instant.now().truncatedTo(ChronoUnit.DAYS);
 
-        long totalCallsToday = 0;
-        long totalErrorsToday = 0;
-        long activeKeyCount = 0;
-
-        for (Project project : projects) {
-            totalCallsToday += usageLogRepository.countByProjectIdSince(project.getId(), startOfToday);
-            List<ApiKey> keys = apiKeyRepository.findAllByProjectId(project.getId());
-            activeKeyCount += keys.stream().filter(k -> k.getStatus() == ApiKeyStatus.ACTIVE).count();
-            for (ApiKey key : keys) {
-                totalErrorsToday += usageLogRepository
-                        .countByApiKeyIdAndOccurredAtAfterAndStatusCodeGreaterThanEqual(key.getId(), startOfToday, 400);
-            }
-        }
+        long totalCallsToday = usageLogRepository.countByOrganizationIdSince(organizationId, startOfToday);
+        long totalErrorsToday = usageLogRepository.countByOrganizationIdSinceAndStatusCodeGreaterThanEqual(organizationId, startOfToday, 400);
+        long activeKeyCount = apiKeyRepository.countByOrganizationIdAndStatus(organizationId, ApiKeyStatus.ACTIVE);
+        long totalProjects = projectRepository.findAllByOrganizationId(organizationId).size();
 
         double errorRate = totalCallsToday == 0 ? 0.0 : (totalErrorsToday * 100.0) / totalCallsToday;
 
-        return new DashboardStatsResponse(totalCallsToday, activeKeyCount, round2(errorRate), projects.size());
+        return new DashboardStatsResponse(totalCallsToday, activeKeyCount, round2(errorRate), (int) totalProjects);
     }
 
     private double round2(double value) {

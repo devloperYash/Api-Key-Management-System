@@ -1,5 +1,10 @@
 package com.credx.keyforge.service;
 
+import com.credx.keyforge.entity.Organization;
+import com.credx.keyforge.entity.OrganizationMembership;
+import com.credx.keyforge.entity.MembershipRole;
+import com.credx.keyforge.repository.OrganizationRepository;
+import com.credx.keyforge.repository.OrganizationMembershipRepository;
 import com.credx.keyforge.dto.auth.AuthResponse;
 import com.credx.keyforge.dto.auth.LoginRequest;
 import com.credx.keyforge.dto.auth.RegisterRequest;
@@ -19,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMembershipRepository organizationMembershipRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -38,6 +45,22 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+
+        String slug = user.getFullName().toLowerCase().replaceAll("[^a-z0-9]", "-") + "-" + System.currentTimeMillis();
+        
+        Organization org = Organization.builder()
+                .name(user.getFullName() + "'s Workspace")
+                .slug(slug)
+                .owner(user)
+                .build();
+        org = organizationRepository.save(org);
+
+        OrganizationMembership membership = OrganizationMembership.builder()
+                .organization(org)
+                .user(user)
+                .role(MembershipRole.OWNER)
+                .build();
+        organizationMembershipRepository.save(membership);
 
         String token = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole().name());
         return new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName(), user.getRole().name());

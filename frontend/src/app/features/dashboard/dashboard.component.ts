@@ -2,8 +2,8 @@ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { interval, startWith, switchMap } from 'rxjs';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { filter, interval, startWith, switchMap } from 'rxjs';
 import { UsageService } from '../../core/services/usage.service';
 import { SessionStateService } from '../../core/state/session-state.service';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
@@ -57,8 +57,7 @@ const POLL_INTERVAL_MS = 15000;
         <mat-card class="kf-dashboard__hint">
           <mat-icon>info</mat-icon>
           <span>
-            This view polls the dashboard-stats endpoint on an interval. TODO: replace polling with a
-            WebSocket/SSE subscription once the backend exposes a push channel for usage events.
+            This view polls the dashboard-stats endpoint on an interval.
           </span>
         </mat-card>
       }
@@ -121,17 +120,18 @@ export class DashboardComponent implements OnInit {
   stats = signal<DashboardStats | null>(null);
   loading = signal(true);
 
-  ngOnInit(): void {
-    const orgId = this.sessionState.currentOrgId();
-    if (!orgId) {
-      this.loading.set(false);
-      return;
-    }
+  private readonly orgId$ = toObservable(this.sessionState.currentOrgId);
 
-    interval(POLL_INTERVAL_MS)
+  ngOnInit(): void {
+    this.orgId$
       .pipe(
-        startWith(0),
-        switchMap(() => this.usageService.getDashboardStats(orgId)),
+        filter((orgId): orgId is string => !!orgId),
+        switchMap((orgId) =>
+          interval(POLL_INTERVAL_MS).pipe(
+            startWith(0),
+            switchMap(() => this.usageService.getDashboardStats(orgId))
+          )
+        ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({

@@ -1,10 +1,12 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { UsageService } from '../../core/services/usage.service';
 import { SessionStateService } from '../../core/state/session-state.service';
 import { UsageAnalytics } from '../../core/models/usage.model';
@@ -91,6 +93,7 @@ export class AnalyticsComponent implements OnInit {
   private readonly usageService = inject(UsageService);
   private readonly sessionState = inject(SessionStateService);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   analytics = signal<UsageAnalytics | null>(null);
   loading = signal(false);
@@ -98,15 +101,21 @@ export class AnalyticsComponent implements OnInit {
   displayedColumns = ['date', 'totalCalls', 'errorCalls'];
 
   private apiKeyId!: string;
+  private readonly orgId$ = toObservable(this.sessionState.currentOrgId);
 
   ngOnInit(): void {
     this.apiKeyId = this.route.snapshot.paramMap.get('keyId')!;
-    this.fetch();
+    this.orgId$
+      .pipe(
+        filter((orgId): orgId is string => !!orgId),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.fetch();
+      });
   }
 
   onWindowChange(days: number): void {
-    // Updates the signal driving the select's displayed value, but does not
-    // itself trigger a refetch - fetch() has to be called separately below.
     this.windowDays.set(days);
     this.fetch();
   }
@@ -119,10 +128,7 @@ export class AnalyticsComponent implements OnInit {
     this.usageService.getKeyAnalytics(orgId, this.apiKeyId, this.windowDays()).subscribe({
       next: (data) => {
         this.analytics.set(data);
-        // loading is left true here on the happy path - only the error
-        // handler below resets it, so a slow-but-successful request leaves
-        // the spinner and the (now populated) table stacked on top of each
-        // other until the next fetch.
+        this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);

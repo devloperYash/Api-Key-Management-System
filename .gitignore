@@ -1,0 +1,18 @@
+# IDE files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+
+# Build & Dependencies
+node_modules/
+dist/
+.angular/
+target/
+
+# Environment files
+.env
+.env.local

@@ -92,13 +92,35 @@ export class KeyCreatedDialogComponent {
   copied = signal(false);
 
   copyToClipboard(): void {
-    // navigator.clipboard.writeText() returns a rejected promise on
-    // insecure contexts / when the browser denies clipboard permission -
-    // that rejection isn't handled here, so a failed copy just does nothing
-    // instead of telling the user it didn't work.
-    navigator.clipboard.writeText(this.data.fullKey).then(() => {
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2000);
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(this.data.fullKey).then(
+        () => this.onCopySuccess(),
+        () => this.fallbackCopy()
+      );
+    } else {
+      this.fallbackCopy();
+    }
+  }
+
+  private onCopySuccess(): void {
+    this.copied.set(true);
+    setTimeout(() => this.copied.set(false), 2000);
+  }
+
+  private fallbackCopy(): void {
+    const textArea = document.createElement('textarea');
+    textArea.value = this.data.fullKey;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      this.onCopySuccess();
+    } catch (err) {
+      console.error('Fallback copy failed', err);
+    }
+    document.body.removeChild(textArea);
   }
 }

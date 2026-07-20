@@ -13,8 +13,10 @@ import java.util.Optional;
 
 public interface ApiKeyRepository extends JpaRepository<ApiKey, String> {
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"project"})
     Page<ApiKey> findAllByProjectId(String projectId, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"project"})
     List<ApiKey> findAllByProjectId(String projectId);
 
     /**
@@ -29,4 +31,13 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, String> {
     @Modifying
     @Query("update ApiKey k set k.lastUsedAt = :now where k.id = :id")
     void touchLastUsedAt(@Param("id") String id, @Param("now") java.time.Instant now);
+
+    List<ApiKey> findAllByStatusAndGracePeriodEndsAtBefore(com.credx.keyforge.entity.ApiKeyStatus status, java.time.Instant before);
+
+    List<ApiKey> findAllByStatusAndExpiresAtBefore(com.credx.keyforge.entity.ApiKeyStatus status, java.time.Instant before);
+
+    long countByStatus(com.credx.keyforge.entity.ApiKeyStatus status);
+
+    @Query("select count(k) from ApiKey k where k.project.organization.id = :orgId and k.status = :status")
+    long countByOrganizationIdAndStatus(@org.springframework.data.repository.query.Param("orgId") String orgId, @org.springframework.data.repository.query.Param("status") com.credx.keyforge.entity.ApiKeyStatus status);
 }

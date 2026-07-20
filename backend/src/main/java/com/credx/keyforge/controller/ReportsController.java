@@ -3,6 +3,8 @@ package com.credx.keyforge.controller;
 import com.credx.keyforge.dto.apikey.ApiKeyResponse;
 import com.credx.keyforge.service.ApiKeyService;
 import lombok.RequiredArgsConstructor;
+import com.credx.keyforge.security.AuthenticatedUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +25,9 @@ public class ReportsController {
     private final ApiKeyService apiKeyService;
 
     @GetMapping("/projects/{projectId}/keys/export")
-    public ResponseEntity<List<ApiKeyResponse>> exportKeys(@PathVariable String projectId) {
-        return ResponseEntity.ok(apiKeyService.listAllApiKeysUnpaged(projectId));
+    public ResponseEntity<List<ApiKeyResponse>> exportKeys(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable String projectId) {
+        return ResponseEntity.ok(apiKeyService.listAllApiKeysUnpaged(user.getUserId(), projectId));
     }
 }

@@ -66,6 +66,12 @@ public class ApiKey {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
+    @Column(name = "grace_period_ends_at")
+    private Instant gracePeriodEndsAt;
+
+    @Column(name = "replaced_by_key_id")
+    private String replacedByKeyId;
+
     @Column(name = "rate_limit_per_minute", nullable = false)
     @Builder.Default
     private Integer rateLimitPerMinute = 60;

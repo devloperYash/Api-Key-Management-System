@@ -49,14 +49,6 @@ public class ApiKeyValidationService {
             return apiKeyRepository.findByHashedKey(hashed).filter(this::isUsable);
         }
 
-        if (candidates.size() == 1) {
-            // Single candidate for this prefix: presenting a key with the right
-            // prefix is treated as sufficient once status/expiry are checked,
-            // since prefix collisions are effectively impossible in practice
-            // (16 base64 chars of a 32-byte secret).
-            ApiKey candidate = candidates.get(0);
-            return isUsable(candidate) ? Optional.of(candidate) : Optional.empty();
-        }
 
         // Multiple keys share this prefix - fall back to full hash comparison.
         String hashed = apiKeyGenerator.sha256(presentedKey);
@@ -67,7 +59,14 @@ public class ApiKeyValidationService {
     }
 
     private boolean isUsable(ApiKey key) {
-        if (key.getStatus() != ApiKeyStatus.ACTIVE) {
+        if (key.getStatus() == ApiKeyStatus.REVOKED || key.getStatus() == ApiKeyStatus.EXPIRED) {
+            return false;
+        }
+        if (key.getStatus() == ApiKeyStatus.ROTATING) {
+            if (key.getGracePeriodEndsAt() != null && key.getGracePeriodEndsAt().isBefore(Instant.now())) {
+                return false;
+            }
+        } else if (key.getStatus() != ApiKeyStatus.ACTIVE) {
             return false;
         }
         return key.getExpiresAt() == null || key.getExpiresAt().isAfter(Instant.now());

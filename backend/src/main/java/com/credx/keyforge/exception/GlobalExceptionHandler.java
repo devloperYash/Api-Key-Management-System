@@ -75,7 +75,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
+        ex.printStackTrace(); // Added to debug 500 error
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiErrorResponse.of(500, "INTERNAL_ERROR", "An unexpected error occurred", request.getRequestURI()));
+                ApiErrorResponse.of(500, "INTERNAL_ERROR", "An unexpected error occurred: " + ex.getMessage(), request.getRequestURI()));
     }
 }

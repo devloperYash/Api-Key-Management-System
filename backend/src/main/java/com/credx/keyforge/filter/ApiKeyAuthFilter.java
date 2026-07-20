@@ -20,13 +20,11 @@ import java.util.Optional;
 /**
  * Guards the simulated "protected resource" demo endpoint. Requires a valid
  * X-API-Key header, resolves it to an ApiKey, and records a usage log entry
- * for every call - this is the whole point of the platform: showing what
- * happens when a generated key is actually used against something.
+ * for every call — including rate-limited ones (status 429) so they appear
+ * in usage analytics.
  *
- * NOTE: this filter records usage and tracks the rate-limit counter, but does
- * NOT reject requests once the limit is exceeded yet - enforcement is a
- * planned follow-up (see README "Missing Features"). Right now going over the
- * configured rateLimitPerMinute just shows up in the counter.
+ * Auth flow: resolve key → check rate limit → if within limit, forward to
+ * the downstream controller; otherwise short-circuit with 429 and log it.
  */
 @Component
 @RequiredArgsConstructor
@@ -56,16 +54,25 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         Optional<ApiKey> resolved = validationService.resolveKey(presentedKey);
 
         if (resolved.isEmpty()) {
-            writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid API key");
+            writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "Missing or invalid API key");
             return;
         }
 
         ApiKey apiKey = resolved.get();
         boolean withinLimit = validationService.recordRequestAndCheckLimit(apiKey);
 
-        // withinLimit is currently informational only - see class javadoc.
-        // A future rate-limit filter should short-circuit here with 429 when
-        // withinLimit is false.
+        if (!withinLimit) {
+            long elapsed = System.currentTimeMillis() - start;
+            usageLoggingService.recordUsage(
+                    apiKey,
+                    request.getRequestURI(),
+                    request.getMethod(),
+                    429,
+                    elapsed);
+            writeError(response, 429, "RATE_LIMITED",
+                    "Rate limit exceeded: " + apiKey.getRateLimitPerMinute() + " requests/minute. Try again shortly.");
+            return;
+        }
 
         filterChain.doFilter(request, response);
 
@@ -78,12 +85,12 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 elapsed);
     }
 
-    private void writeError(HttpServletResponse response, int status, String message) throws IOException {
+    private void writeError(HttpServletResponse response, int status, String error, String message) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json");
         response.getWriter().write(objectMapper.writeValueAsString(Map.of(
                 "status", status,
-                "error", "UNAUTHORIZED",
+                "error", error,
                 "message", message)));
     }
 }

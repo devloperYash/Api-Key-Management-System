@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormArray, FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -40,9 +40,9 @@ export interface CreateApiKeyDialogData {
         </mat-form-field>
 
         <label class="kf-key-form__scopes-label">Scopes</label>
-        <div class="kf-key-form__scopes">
-          @for (scope of allScopes; track scope.value) {
-            <mat-checkbox (change)="toggleScope(scope.value, $event.checked)">
+        <div class="kf-key-form__scopes" formArrayName="scopes">
+          @for (scope of allScopes; track scope.value; let i = $index) {
+            <mat-checkbox [formControlName]="i">
               {{ scope.label }}
               <span class="kf-key-form__scope-desc">{{ scope.description }}</span>
             </mat-checkbox>
@@ -120,31 +120,18 @@ export class CreateApiKeyDialogComponent {
   submitting = signal(false);
   submittedOnce = signal(false);
 
-  // Selected scopes are tracked in a plain component field rather than a
-  // FormArray - simpler to wire up against the checkbox list above, and the
-  // form's `scopes` control just mirrors this array's length for validation.
-  private selectedScopes: Scope[] = [];
-
-  form = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    scopes: [[] as Scope[], [Validators.required]],
-    expiresAt: [null as Date | null],
-    rateLimitPerMinute: [60, [Validators.required]],
-  });
-
-  toggleScope(scope: Scope, checked: boolean): void {
-    if (checked) {
-      this.selectedScopes.push(scope);
-    } else {
-      const idx = this.selectedScopes.indexOf(scope);
-      if (idx >= 0) {
-        this.selectedScopes.splice(idx, 1);
+  form = this.fb.group({
+    name: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(2)]),
+    scopes: this.fb.array(
+      this.allScopes.map(() => this.fb.control(false)),
+      (control) => {
+        const selected = (control as FormArray).value.some((val: boolean) => val);
+        return selected ? null : { required: true };
       }
-    }
-    // Keep the reactive form control in sync so Validators.required can see
-    // the current selection.
-    this.form.controls.scopes.setValue(this.selectedScopes.length > 0 ? this.selectedScopes : []);
-  }
+    ),
+    expiresAt: this.fb.control<Date | null>(null),
+    rateLimitPerMinute: this.fb.nonNullable.control(60, [Validators.required]),
+  });
 
   submit(): void {
     this.submittedOnce.set(true);
@@ -155,10 +142,15 @@ export class CreateApiKeyDialogComponent {
     this.submitting.set(true);
     const raw = this.form.getRawValue();
 
+    // Map boolean array back to Scope[]
+    const selectedScopes = this.allScopes
+      .filter((_, i) => raw.scopes[i])
+      .map(s => s.value);
+
     this.apiKeyService
       .create(this.data.organizationId, this.data.projectId, {
         name: raw.name,
-        scopes: this.selectedScopes,
+        scopes: selectedScopes,
         expiresAt: raw.expiresAt ? new Date(raw.expiresAt).toISOString() : null,
         rateLimitPerMinute: raw.rateLimitPerMinute,
       })

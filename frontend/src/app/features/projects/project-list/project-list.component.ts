@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -6,6 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { ProjectService } from '../../../core/services/project.service';
 import { SessionStateService } from '../../../core/state/session-state.service';
 import { Project } from '../../../core/models/project.model';
@@ -98,13 +100,23 @@ export class ProjectListComponent implements OnInit {
   private readonly sessionState = inject(SessionStateService);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
 
   projects = signal<Project[]>([]);
   loading = signal(true);
   displayedColumns = ['name', 'environment', 'activeKeys', 'createdAt'];
 
+  private readonly orgId$ = toObservable(this.sessionState.currentOrgId);
+
   ngOnInit(): void {
-    this.load();
+    this.orgId$
+      .pipe(
+        filter((orgId): orgId is string => !!orgId),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.load();
+      });
   }
 
   load(): void {

@@ -62,7 +62,7 @@ public class ApiKeyController {
     @PostMapping("/api/keys/{apiKeyId}/rotate")
     public ResponseEntity<ApiKeyCreatedResponse> rotate(@PathVariable String apiKeyId) {
         String userId = currentUserProvider.getUserId();
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(
+        return ResponseEntity.ok(
                 apiKeyService.rotateApiKey(userId, apiKeyId));
     }
 }
