@@ -281,7 +281,7 @@ sequenceDiagram
 
 ---
 
-### 🤖 Feature 5: Forge Assistant (Google Gemini AI Integration)
+### 🤖 Feature 5: Forge Assistant (LLM Integration)
 
 - **What Was Missing?**  
   The dashboard only displayed raw numbers, and creating API keys required developers to guess the best scopes and rate limits.
