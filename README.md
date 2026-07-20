@@ -252,9 +252,3 @@ The frontend's `src/environments/environment.ts` points at `http://localhost:808
 5. `cd frontend && npm install && npm start`
 6. Visit `http://localhost:4200`, register a new account (or log in with a seeded user —
    password `Password123!` for all seeded accounts, see `seed-data/seed.sql`).
-
-### Postman
-Import `postman/KeyForge.postman_collection.json`. Set the `baseUrl` collection variable (defaults
-to `http://localhost:8080`). Run **Auth > Login** or **Auth > Register** first — the collection's
-test scripts auto-populate `{{token}}`, `{{organizationId}}`, `{{projectId}}`, `{{apiKeyId}}`, and
-`{{fullApiKey}}` as you work through the requests in order.
