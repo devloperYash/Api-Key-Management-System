@@ -10,6 +10,7 @@ import { filter } from 'rxjs';
 import { UsageService } from '../../core/services/usage.service';
 import { SessionStateService } from '../../core/state/session-state.service';
 import { UsageAnalytics } from '../../core/models/usage.model';
+import { UsageChartComponent } from '../../shared/components/usage-chart/usage-chart.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 
 @Component({
@@ -22,6 +23,7 @@ import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner
     MatFormFieldModule,
     MatSelectModule,
     LoadingSpinnerComponent,
+    UsageChartComponent,
   ],
   template: `
     <div class="kf-page">
@@ -43,13 +45,15 @@ import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner
           <div class="kf-stat-card__label">Total calls</div>
         </mat-card>
         <mat-card class="kf-stat-card">
-          <div class="kf-stat-card__value">{{ analytics()?.totalErrors ?? 0 | number }}</div>
+          <div class="kf-stat-card__value" style="color: #b3261e;">{{ analytics()?.totalErrors ?? 0 | number }}</div>
           <div class="kf-stat-card__label">Total errors</div>
         </mat-card>
       </div>
 
       @if (loading()) {
         <kf-loading-spinner label="Crunching usage numbers..."></kf-loading-spinner>
+      } @else {
+        <kf-usage-chart [data]="analytics()?.dailyBreakdown ?? []"></kf-usage-chart>
       }
 
       <table mat-table [dataSource]="analytics()?.dailyBreakdown ?? []" class="mat-elevation-z1 kf-full-width">
