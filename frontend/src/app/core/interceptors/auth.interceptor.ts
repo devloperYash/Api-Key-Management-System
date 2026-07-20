@@ -4,22 +4,29 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { SessionStateService } from '../state/session-state.service';
 
+import { environment } from '../../../environments/environment';
+
 /**
- * Attaches the JWT (if present) to every outgoing request and redirects to
- * login on a 401 response (expired/invalid token).
+ * Attaches the JWT (if present) to backend API requests and redirects to
+ * login on a 401 response from the application backend (expired/invalid token).
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const sessionState = inject(SessionStateService);
   const router = inject(Router);
   const token = sessionState.getToken();
 
-  const authorizedReq = token
+  // Only attach JWT and handle 401 for application backend requests
+  const isBackendReq = req.url.startsWith(environment.apiBaseUrl) ||
+                        req.url.startsWith('http://localhost:8080') ||
+                        req.url.startsWith('/api/');
+
+  const authorizedReq = (token && isBackendReq)
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : req;
 
   return next(authorizedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/auth/')) {
+      if (error.status === 401 && isBackendReq && !req.url.includes('/auth/')) {
         sessionState.clearSession();
         router.navigate(['/login']);
       }
